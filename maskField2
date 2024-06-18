@@ -1,0 +1,88 @@
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.router.Route;
+
+@Route("app")
+public class CardView extends VerticalLayout {
+
+    private TextField visibleField;
+    private TextField hiddenField;
+    private boolean isFormatting;
+
+    public CardView() {
+        Button button = new Button("Показать номер");
+
+        visibleField = new TextField("Номер карты");
+        hiddenField = new TextField("Настоящие данные");
+        hiddenField.setReadOnly(true);  // Поле только для чтения
+
+        visibleField.addValueChangeListener(event -> {
+            if (isFormatting) {
+                return; // избегаем бесконечного цикла
+            }
+            
+            isFormatting = true;
+            String cardNumber = event.getValue().replaceAll("\\s", "");  // Удаляем все пробелы
+
+            // Ограничиваем до 16 символов, если длина больше 16
+            if (cardNumber.length() > 16) {
+                cardNumber = cardNumber.substring(0, 16);
+            }
+
+            // Отображаем маскированный номер в visibleField
+            String maskedCardNumber = maskCardNumber(cardNumber);
+            visibleField.setValue(maskedCardNumber);
+            visibleField.setCursorPosition(maskedCardNumber.length());
+
+            // Отображаем настоящие данные в hiddenField с пробелами
+            String formattedCardNumber = formatCardNumber(cardNumber);
+            hiddenField.setValue(formattedCardNumber);
+
+            isFormatting = false;
+        });
+
+        button.addClickListener(event -> {
+            Notification.show(hiddenField.getValue());
+        });
+
+        add(visibleField, hiddenField, button);
+    }
+
+    private String maskCardNumber(String cardNumber) {
+        StringBuilder masked = new StringBuilder();
+        int length = cardNumber.length();
+
+        // Маскируем все символы, кроме последних 4
+        for (int i = 0; i < length; i++) {
+            if (i < length - 4) {
+                masked.append("*");
+            } else {
+                masked.append(cardNumber.charAt(i));
+            }
+        }
+
+        // Добавляем пробелы для форматирования "**** **** **** 1234"
+        if (masked.length() > 4) {
+            for (int i = 4; i < masked.length(); i += 5) {
+                masked.insert(i, " ");
+            }
+        }
+
+        return masked.toString();
+    }
+
+    private String formatCardNumber(String cardNumber) {
+        StringBuilder formatted = new StringBuilder(cardNumber);
+
+        // Добавляем пробелы для форматирования "4324 4322 4234 3222"
+        if (formatted.length() > 4) {
+            for (int i = 4; i < formatted.length(); i += 5) {
+                formatted.insert(i, " ");
+            }
+        }
+
+        return formatted.toString();
+    }
+}
