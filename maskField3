@@ -1,86 +1,45 @@
-@Route("app")
-public class CardView extends VerticalLayout {
+VerticalLayout layout = new VerticalLayout();
 
-    private TextField visibleField;
-    private TextField hiddenField;
-    private boolean isFormatting;
+        // Создаем TextField для маскированной части
+        TextField maskedPartField = new TextField();
+        maskedPartField.setValue("**** **** ****");
+        maskedPartField.setReadOnly(true); // Делаем поле только для чтения
+        maskedPartField.setWidth("12em"); // Устанавливаем ширину поля ввода
+        /*maskedPartField.addStyleName(ValoTheme.TEXTFIELD_BORDERLESS); // Убираем границу
+        maskedPartField.addStyleName("masked-part"); // Добавляем класс для дополнительного стиля*/
 
-    public CardView() {
-        Button button = new Button("Показать номер");
-        TextField numberField = new TextField("Введите число");
-        visibleField = new TextField("Номер карты");
-        hiddenField = new TextField("Настоящие данные");
-        hiddenField.setReadOnly(true);  // Поле только для чтения
+        // Создаем TextField для ввода последних 4 цифр
+        TextField lastDigitsField = new TextField();
+        lastDigitsField.setMaxLength(4); // Ограничиваем ввод 4 символами
+        lastDigitsField.setWidth("4em"); // Устанавливаем ширину поля ввода
+      //  lastDigitsField.addStyleName(ValoTheme.TEXTFIELD_ALIGN_CENTER); // Центрируем текст
 
-
-        // Добавляем слушатель событий, который обрабатывает вводимые символы
-        numberField.addValueChangeListener(event -> {
+        // Добавляем ValueChangeListener для фильтрации ввода
+        lastDigitsField.addValueChangeListener(event -> {
             String value = event.getValue();
-            // Удаляем все нечисловые символы
-            String filteredValue = value.replaceAll("[^0-9]", "");
+            StringBuilder filteredValue = new StringBuilder();
 
-            // Если введенное значение отличается от отфильтрованного значения, то обновляем текстовое поле
-            if (!value.equals(filteredValue)) {
-                numberField.setValue(filteredValue);
+            for (char ch : value.toCharArray()) {
+                if (Character.isDigit(ch) && filteredValue.length() < 4) {
+                    filteredValue.append(ch);
+                }
+            }
+
+            if (!value.equals(filteredValue.toString())) {
+                lastDigitsField.setValue(filteredValue.toString());
             }
         });
 
+        // Горизонтальное размещение двух TextField
+        HorizontalLayout cardNumberLayout = new HorizontalLayout(maskedPartField, lastDigitsField);
+        cardNumberLayout.setSpacing(false); // Убираем промежутки между компонентами
+      /*  cardNumberLayout.setComponentAlignment(maskedPartField, Alignment.MIDDLE_LEFT);
+        cardNumberLayout.setComponentAlignment(lastDigitsField, Alignment.MIDDLE_LEFT);
 
-        visibleField.addValueChangeListener(event -> {
-            if (isFormatting) {
-                return; // избегаем бесконечного цикла
-            }
+        layout.addComponent(cardNumberLayout);
 
-            isFormatting = true;
-            String cardNumber = event.getValue().replaceAll("\\s", "");  // Удаляем все пробелы
+        setContent(layout);*/
 
-            // Ограничиваем до 16 символов, если длина больше 16
-            if (cardNumber.length() > 16) {
-                cardNumber = cardNumber.substring(0, 16);
-            }
-
-            // Отображаем настоящие данные в hiddenField без пробелов
-            hiddenField.setValue(formatCardNumber(cardNumber));
-
-            // Отображаем маскированный номер в visibleField
-            String maskedCardNumber = maskCardNumber(cardNumber);
-            visibleField.setValue(maskedCardNumber);
-            //visibleField.setCursorPosition(maskedCardNumber.length());
-
-            isFormatting = false;
-        });
-
-        button.addClickListener(event -> {
-            String value = hiddenField.getValue().replaceAll("\\s", ""); // Удаляем пробелы
-            Notification.show(value.substring(value.length() - 4));
-        });
-
-        add(visibleField, hiddenField, button);
+        cardNumberLayout.add(maskedPartField, lastDigitsField);
+        add(cardNumberLayout);
     }
-
-    private String maskCardNumber(String cardNumber) {
-        int length = cardNumber.length();
-        String lastFourDigits = length > 4 ? cardNumber.substring(length - 4) : cardNumber;
-        StringBuilder masked = new StringBuilder();
-
-        // Маскируем все символы, кроме последних 4
-        for (int i = 0; i < length - 4; i++) {
-            masked.append("*");
-        }
-
-        masked.append(lastFourDigits);
-
-        return formatCardNumber(masked.toString());
-    }
-
-    private String formatCardNumber(String cardNumber) {
-        StringBuilder formatted = new StringBuilder(cardNumber);
-
-        // Добавляем пробелы после каждых 4 символов
-        for (int i = 4; i < formatted.length(); i += 5) {
-            formatted.insert(i, " ");
-        }
-
-        return formatted.toString();
-    }
-}
