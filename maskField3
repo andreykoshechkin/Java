@@ -1,0 +1,86 @@
+@Route("app")
+public class CardView extends VerticalLayout {
+
+    private TextField visibleField;
+    private TextField hiddenField;
+    private boolean isFormatting;
+
+    public CardView() {
+        Button button = new Button("Показать номер");
+        TextField numberField = new TextField("Введите число");
+        visibleField = new TextField("Номер карты");
+        hiddenField = new TextField("Настоящие данные");
+        hiddenField.setReadOnly(true);  // Поле только для чтения
+
+
+        // Добавляем слушатель событий, который обрабатывает вводимые символы
+        numberField.addValueChangeListener(event -> {
+            String value = event.getValue();
+            // Удаляем все нечисловые символы
+            String filteredValue = value.replaceAll("[^0-9]", "");
+
+            // Если введенное значение отличается от отфильтрованного значения, то обновляем текстовое поле
+            if (!value.equals(filteredValue)) {
+                numberField.setValue(filteredValue);
+            }
+        });
+
+
+        visibleField.addValueChangeListener(event -> {
+            if (isFormatting) {
+                return; // избегаем бесконечного цикла
+            }
+
+            isFormatting = true;
+            String cardNumber = event.getValue().replaceAll("\\s", "");  // Удаляем все пробелы
+
+            // Ограничиваем до 16 символов, если длина больше 16
+            if (cardNumber.length() > 16) {
+                cardNumber = cardNumber.substring(0, 16);
+            }
+
+            // Отображаем настоящие данные в hiddenField без пробелов
+            hiddenField.setValue(formatCardNumber(cardNumber));
+
+            // Отображаем маскированный номер в visibleField
+            String maskedCardNumber = maskCardNumber(cardNumber);
+            visibleField.setValue(maskedCardNumber);
+            //visibleField.setCursorPosition(maskedCardNumber.length());
+
+            isFormatting = false;
+        });
+
+        button.addClickListener(event -> {
+            String value = hiddenField.getValue().replaceAll("\\s", ""); // Удаляем пробелы
+            Notification.show(value.substring(value.length() - 4));
+        });
+
+        add(visibleField, hiddenField, button);
+    }
+
+    private String maskCardNumber(String cardNumber) {
+        int length = cardNumber.length();
+        String lastFourDigits = length > 4 ? cardNumber.substring(length - 4) : cardNumber;
+        StringBuilder masked = new StringBuilder();
+
+        // Маскируем все символы, кроме последних 4
+        for (int i = 0; i < length - 4; i++) {
+            masked.append("*");
+        }
+
+        masked.append(lastFourDigits);
+
+        return formatCardNumber(masked.toString());
+    }
+
+    private String formatCardNumber(String cardNumber) {
+        StringBuilder formatted = new StringBuilder(cardNumber);
+
+        // Добавляем пробелы после каждых 4 символов
+        for (int i = 4; i < formatted.length(); i += 5) {
+            formatted.insert(i, " ");
+        }
+
+        return formatted.toString();
+    }
+}
